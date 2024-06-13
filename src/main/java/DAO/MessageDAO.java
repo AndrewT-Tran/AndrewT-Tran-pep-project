@@ -1,7 +1,5 @@
 package DAO;
 
-import Model.Message;
-import Util.ConnectionUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,7 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import Model.Message;
+import Util.ConnectionUtil;
+
+
 public class MessageDAO {
+
     public Optional<Message> getMessageById(int id) throws DaoException {
         String sql = "SELECT * FROM message WHERE id = ?";
         try (Connection conn = ConnectionUtil.getConnection();

@@ -1,7 +1,5 @@
 package DAO;
 
-import Model.Account;
-import Util.ConnectionUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,6 +8,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import Model.Account;
+import Util.ConnectionUtil;
+
 
 
 public class AccountDAO {
@@ -117,7 +119,6 @@ public class AccountDAO {
 
     private void handleSQLException(SQLException e, String sql, String message) throws DaoException {
         System.err.println(message + " - SQL: " + sql);
-        e.printStackTrace();
         throw new DaoException(message, e);
     }
 }

@@ -1,21 +1,23 @@
 package Service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import DAO.DaoException;
 import DAO.MessageDAO;
 import Model.Account;
 import Model.Message;
-import java.util.List;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MessageService {
-    private MessageDAO messageDao;
+    private final MessageDAO messageDao;
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageService.class);
     private static final String DB_ACCESS_ERROR_MSG = "Error accessing the database";
 
     public MessageService() {
-        messageDao = new MessageDAO();
+        this.messageDao = new MessageDAO();
     }
 
     public MessageService(MessageDAO messageDao) {
@@ -126,4 +128,6 @@ public class MessageService {
             throw new ServiceException("Account not authorized to modify this message");
         }
     }
+
+
 }

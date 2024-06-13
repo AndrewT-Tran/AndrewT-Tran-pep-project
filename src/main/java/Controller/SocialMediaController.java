@@ -18,7 +18,6 @@ public class SocialMediaController {
     private final AccountService accountService;
     private final MessageService messageService;
 
-    // Initialize the account and message instances
     public SocialMediaController() {
         this.accountService = new AccountService();
         this.messageService = new MessageService();
@@ -38,12 +37,10 @@ public class SocialMediaController {
         return app;
     }
 
-    // USER REG
     private void registerAccount(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Account account = mapper.readValue(ctx.body(), Account.class);
 
-        // Validation
         if (account.getUsername() == null || account.getUsername().isEmpty()) {
             ctx.status(400).result("Username must not be empty");
             return;
@@ -63,11 +60,10 @@ public class SocialMediaController {
             Account registeredAccount = accountService.createAccount(account);
             ctx.status(200).json(registeredAccount);
         } catch (ServiceException e) {
-            ctx.status(400).result("Error creating account");
+            ctx.status(500).result("Error creating account");
         }
     }
 
-    // LOGIN
     private void loginAccount(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Account account = mapper.readValue(ctx.body(), Account.class);
@@ -78,19 +74,17 @@ public class SocialMediaController {
                 ctx.sessionAttribute("logged_in_account", loggedInAccount.get());
                 ctx.status(200).json(loggedInAccount.get());
             } else {
-                ctx.status(401).result("Invalid username or password");
+                ctx.status(401).result("");
             }
         } catch (ServiceException e) {
-            ctx.status(401).result("Error logging in");
+            ctx.status(500).result("Error logging in");
         }
     }
 
-    // Create new Message
     private void createMessage(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
 
-        // Validation
         if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
             ctx.status(400).result("Message text cannot be null or empty");
             return;
@@ -110,17 +104,19 @@ public class SocialMediaController {
                 ctx.status(400).result("Account not found");
             }
         } catch (ServiceException e) {
-            ctx.status(400).result("Error creating message");
+            ctx.status(500).result("Error creating message");
         }
     }
 
-    // Get all messages
     private void getAllMessages(Context ctx) {
-        List<Message> messages = messageService.getAllMessages();
-        ctx.status(200).json(messages);
+        try {
+            List<Message> messages = messageService.getAllMessages();
+            ctx.status(200).json(messages);
+        } catch (ServiceException e) {
+            ctx.status(500).result("Error retrieving messages");
+        }
     }
 
-    // Get message by id
     private void getMessageById(Context ctx) {
         try {
             int id = Integer.parseInt(ctx.pathParam("message_id"));
@@ -128,7 +124,7 @@ public class SocialMediaController {
             if (message.isPresent()) {
                 ctx.status(200).json(message.get());
             } else {
-                ctx.status(200).result("");
+                ctx.status(404).result("Message not found");
             }
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
@@ -137,7 +133,6 @@ public class SocialMediaController {
         }
     }
 
-    // Delete message by id
     private void deleteMessageById(Context ctx) {
         try {
             int id = Integer.parseInt(ctx.pathParam("message_id"));
@@ -146,7 +141,7 @@ public class SocialMediaController {
                 messageService.deleteMessage(message.get());
                 ctx.status(200).json(message.get());
             } else {
-                ctx.status(200).result("");
+                ctx.status(404).result("Message not found");
             }
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
@@ -155,19 +150,17 @@ public class SocialMediaController {
         }
     }
 
-    // Update message by id
     private void updateMessageById(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
 
-        // Validation
         if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
             ctx.status(400).result("Message text cannot be null or empty");
             return;
         }
 
-        if (mappedMessage.getMessage_text().length() > 255) {
-            ctx.status(400).result("Message text cannot exceed 255 characters");
+        if (mappedMessage.getMessage_text().length() > 254) {
+            ctx.status(400).result("Message text cannot exceed 254 characters");
             return;
         }
 
@@ -179,11 +172,10 @@ public class SocialMediaController {
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(400).result("Error updating message");
+            ctx.status(500).result("Error updating message");
         }
     }
 
-    // Get messages by account id
     private void getMessagesByAccountId(Context ctx) {
         try {
             int accountId = Integer.parseInt(ctx.pathParam("account_id"));
