@@ -1,69 +1,129 @@
 package Service;
 
+import DAO.DaoException;
+import DAO.MessageDAO;
+import Model.Account;
+import Model.Message;
 import java.util.List;
 import java.util.Optional;
-
-import DAO.MessageDAO;
-import Model.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageService {
     private MessageDAO messageDao;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageService.class);
+    private static final String DB_ACCESS_ERROR_MSG = "Error accessing the database";
 
     public MessageService() {
-        this.messageDao = new MessageDAO();
+        messageDao = new MessageDAO();
     }
 
     public MessageService(MessageDAO messageDao) {
         this.messageDao = messageDao;
     }
 
-    public Message createMessage(Message message) throws ServiceException {
-        validateMessage(message);
-        message.setMessage_id(generateNewMessageId());
-        messageDao.createMessage(message);
-        return message;
+    public Optional<Message> getMessageById(int id) {
+        LOGGER.info("Fetching message with ID: {}", id);
+        try {
+            Optional<Message> message = messageDao.getMessageById(id);
+            if (!message.isPresent()) {
+                throw new ServiceException("Message not found");
+            }
+            LOGGER.info("Fetched message: {}", message.orElse(null));
+            return message;
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
+        }
     }
 
     public List<Message> getAllMessages() {
-        return messageDao.getAllMessages();
-    }
-
-    public Optional<Message> getMessageById(int messageId) {
-        return messageDao.getMessageById(messageId);
-    }
-
-    public void deleteMessage(int messageId) throws ServiceException {
-        Optional<Message> message = getMessageById(messageId);
-        if (message.isPresent()) {
-            messageDao.deleteMessage(messageId);
-        } else {
-            throw new ServiceException("Message not found");
+        LOGGER.info("Fetching all messages");
+        try {
+            List<Message> messages = messageDao.getAll();
+            LOGGER.info("Fetched {} messages", messages.size());
+            return messages;
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
         }
-    }
-
-    public Message updateMessage(Message message) throws ServiceException {
-        if (message.getMessage_id() <= 0) {
-            throw new ServiceException("Invalid message ID");
-        }
-        validateMessage(message);
-        messageDao.updateMessage(message);
-        return message;
     }
 
     public List<Message> getMessagesByAccountId(int accountId) {
-        return messageDao.getMessagesByAccountId(accountId);
-    }
-
-    private void validateMessage(Message message) throws ServiceException {
-        if (message.getMessage_text() == null || message.getMessage_text().isBlank()) {
-            throw new ServiceException("Message text cannot be blank");
-        }
-        if (message.getMessage_text().length() > 255) {
-            throw new ServiceException("Message text exceeds 255 characters");
+        LOGGER.info("Fetching messages posted by account ID: {}", accountId);
+        try {
+            List<Message> messages = messageDao.getMessagesByAccountId(accountId);
+            LOGGER.info("Fetched {} messages", messages.size());
+            return messages;
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
         }
     }
 
-    private int generateNewMessageId() {
-        return (int) (Math.random() * 10000);
+    public Message createMessage(Message message, Account account) {
+        LOGGER.info("Creating message: {}", message);
+
+        // Validate the message
+        validateMessage(message);
+
+        // Check account permission
+        checkAccountPermission(account, message.getPosted_by());
+
+        try {
+            Message createdMessage = messageDao.insert(message);
+            LOGGER.info("Created message: {}", createdMessage);
+            return createdMessage;
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
+        }
+    }
+
+    public Message updateMessage(Message message) {
+        LOGGER.info("Updating message: {}", message.getMessage_id());
+
+        Optional<Message> retrievedMessage = this.getMessageById(message.getMessage_id());
+        if (!retrievedMessage.isPresent()) {
+            throw new ServiceException("Message not found");
+        }
+
+        retrievedMessage.get().setMessage_text(message.getMessage_text());
+        validateMessage(retrievedMessage.get());
+
+        try {
+            messageDao.update(retrievedMessage.get());
+            LOGGER.info("Updated message: {}", retrievedMessage.get());
+            return retrievedMessage.get();
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
+        }
+    }
+
+    public void deleteMessage(Message message) {
+        LOGGER.info("Deleting message: {}", message);
+        try {
+            boolean hasDeletedMessage = messageDao.delete(message);
+            if (hasDeletedMessage) {
+                LOGGER.info("Deleted message {}", message);
+            } else {
+                throw new ServiceException("Message to delete not found");
+            }
+        } catch (DaoException e) {
+            throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
+        }
+    }
+
+    private void validateMessage(Message message) {
+        LOGGER.info("Validating message: {}", message);
+        if (message.getMessage_text() == null || message.getMessage_text().trim().isEmpty()) {
+            throw new ServiceException("Message text cannot be null or empty");
+        }
+        if (message.getMessage_text().length() > 254) {
+            throw new ServiceException("Message text cannot exceed 254 characters");
+        }
+    }
+
+    private void checkAccountPermission(Account account, int postedBy) {
+        LOGGER.info("Checking account permissions for messages");
+        if (account.getAccount_id() != postedBy) {
+            throw new ServiceException("Account not authorized to modify this message");
+        }
     }
 }

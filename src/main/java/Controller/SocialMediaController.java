@@ -1,7 +1,9 @@
 package Controller;
 
+import java.util.List;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import Model.Account;
@@ -10,124 +12,187 @@ import Service.AccountService;
 import Service.MessageService;
 import Service.ServiceException;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 
 public class SocialMediaController {
-    private AccountService accountService = new AccountService();
-    private MessageService messageService = new MessageService();
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final AccountService accountService;
+    private final MessageService messageService;
 
-    public Javalin startAPI() throws ServiceException {
+    // Initialize the account and message instances
+    public SocialMediaController() {
+        this.accountService = new AccountService();
+        this.messageService = new MessageService();
+    }
+
+    public Javalin startAPI() {
         Javalin app = Javalin.create();
-
-        app.post("/register", ctx -> {
-            try {
-                Account account = objectMapper.readValue(ctx.body(), Account.class);
-                Account registeredAccount = accountService.createAccount(account);
-                ctx.json(objectMapper.writeValueAsString(registeredAccount));
-            } catch (Exception e) {
-                ctx.status(400).result("Error processing registration: " + e.getMessage());
-            }
-        });
-
-        app.post("/login", ctx -> {
-            try {
-                Account account = objectMapper.readValue(ctx.body(), Account.class);
-                if (account.getUsername() == null || account.getUsername().isBlank() ||
-                        account.getPassword() == null || account.getPassword().isBlank()) {
-                    ctx.status(400).result("Username and password cannot be blank.");
-                } else {
-                    Optional<Account> loggedInAccount = accountService.validateLogin(account);
-                    if (loggedInAccount.isPresent()) {
-                        ctx.status(200).json(loggedInAccount.get());
-                    } else {
-                        ctx.status(401).result("Invalid username or password.");
-                    }
-                }
-            } catch (Exception e) {
-                ctx.status(400).result("Error processing login: " + e.getMessage());
-            }
-        });
-
-        app.post("/messages", ctx -> {
-            try {
-                Message message = objectMapper.readValue(ctx.body(), Message.class);
-                if (message.getMessage_text() == null || message.getMessage_text().isBlank() ||
-                        message.getMessage_text().length() > 255 || message.getPosted_by() <= 0 ||
-                        !accountService.accountExists(message.getPosted_by())) {
-                    ctx.status(400).result("Invalid message details.");
-                } else {
-                    Message createdMessage = messageService.createMessage(message);
-                    ctx.status(201).json(createdMessage); // Use 201 Created for new resource
-                }
-            } catch (Exception e) {
-                ctx.status(400).result("Error processing message creation: " + e.getMessage());
-            }
-        });
-
-        app.get("/messages", ctx -> {
-            try {
-                ctx.status(200).json(messageService.getAllMessages());
-            } catch (Exception e) {
-                ctx.status(500).result("Error retrieving messages: " + e.getMessage());
-            }
-        });
-
-        app.get("/messages/{id}", ctx -> {
-            try {
-                int id = Integer.parseInt(ctx.pathParam("id"));
-                Optional<Message> message = messageService.getMessageById(id);
-                if (message.isPresent()) {
-                    ctx.json(message.get());
-                } else {
-                    ctx.status(200).result(""); // Return 200 status with empty body if not found
-                }
-            } catch (NumberFormatException e) {
-                ctx.status(400).result("Invalid message ID");
-            }
-        });
-
-        app.delete("/messages/{id}", ctx -> {
-            try {
-                int id = Integer.parseInt(ctx.pathParam("id"));
-                messageService.deleteMessage(id);
-                ctx.status(200).result("Message deleted");
-            } catch (ServiceException e) {
-                ctx.status(404).result(e.getMessage());
-            } catch (NumberFormatException e) {
-                ctx.status(400).result("Invalid message ID");
-            }
-        });
-
-        app.patch("/messages/{id}", ctx -> {
-            try {
-                int id = Integer.parseInt(ctx.pathParam("id"));
-                Message mappedMessage = objectMapper.readValue(ctx.body(), Message.class);
-                mappedMessage.setMessage_id(id);
-
-                if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().isBlank() ||
-                        mappedMessage.getMessage_text().length() > 255 || mappedMessage.getPosted_by() <= 0 ||
-                        !accountService.accountExists(mappedMessage.getPosted_by())) {
-                    ctx.status(400).result("Invalid message details.");
-                } else {
-                    Message messageUpdated = messageService.updateMessage(mappedMessage);
-                    ctx.status(200).json(messageUpdated); // Return updated message
-                }
-            } catch (NumberFormatException e) {
-                ctx.status(400).result("Invalid message ID");
-            } catch (Exception e) {
-                ctx.status(400).result("Error updating message: " + e.getMessage());
-            }
-        });
-
-        app.get("/accounts/{id}/messages", ctx -> {
-            try {
-                int accountId = Integer.parseInt(ctx.pathParam("id"));
-                ctx.status(200).json(messageService.getMessagesByAccountId(accountId));
-            } catch (Exception e) {
-                ctx.status(400).result("Error retrieving messages: " + e.getMessage());
-            }
-        });
+        app.post("/register", this::registerAccount);
+        app.post("/login", this::loginAccount);
+        app.post("/messages", this::createMessage);
+        app.get("/messages", this::getAllMessages);
+        app.get("/messages/{message_id}", this::getMessageById);
+        app.delete("/messages/{message_id}", this::deleteMessageById);
+        app.patch("/messages/{message_id}", this::updateMessageById);
+        app.get("/accounts/{account_id}/messages", this::getMessagesByAccountId);
 
         return app;
+    }
+
+    // USER REG
+    private void registerAccount(Context ctx) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Account account = mapper.readValue(ctx.body(), Account.class);
+
+        // Validation
+        if (account.getUsername() == null || account.getUsername().isEmpty()) {
+            ctx.status(400).result("Username must not be empty");
+            return;
+        }
+
+        if (account.getPassword() == null || account.getPassword().length() < 4) {
+            ctx.status(400).result("Password must be at least 4 characters long");
+            return;
+        }
+
+        if (accountService.isUsernameTaken(account.getUsername())) {
+            ctx.status(400).result("Username already exists");
+            return;
+        }
+
+        try {
+            Account registeredAccount = accountService.createAccount(account);
+            ctx.status(200).json(registeredAccount);
+        } catch (ServiceException e) {
+            ctx.status(400).result("Error creating account");
+        }
+    }
+
+    // LOGIN
+    private void loginAccount(Context ctx) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Account account = mapper.readValue(ctx.body(), Account.class);
+
+        try {
+            Optional<Account> loggedInAccount = accountService.validateLogin(account);
+            if (loggedInAccount.isPresent()) {
+                ctx.sessionAttribute("logged_in_account", loggedInAccount.get());
+                ctx.status(200).json(loggedInAccount.get());
+            } else {
+                ctx.status(401).result("Invalid username or password");
+            }
+        } catch (ServiceException e) {
+            ctx.status(401).result("Error logging in");
+        }
+    }
+
+    // Create new Message
+    private void createMessage(Context ctx) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
+
+        // Validation
+        if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
+            ctx.status(400).result("Message text cannot be null or empty");
+            return;
+        }
+
+        if (mappedMessage.getMessage_text().length() > 254) {
+            ctx.status(400).result("Message text cannot exceed 254 characters");
+            return;
+        }
+
+        try {
+            Optional<Account> account = accountService.getAccountById(mappedMessage.getPosted_by());
+            if (account.isPresent()) {
+                Message message = messageService.createMessage(mappedMessage, account.get());
+                ctx.status(200).json(message);
+            } else {
+                ctx.status(400).result("Account not found");
+            }
+        } catch (ServiceException e) {
+            ctx.status(400).result("Error creating message");
+        }
+    }
+
+    // Get all messages
+    private void getAllMessages(Context ctx) {
+        List<Message> messages = messageService.getAllMessages();
+        ctx.status(200).json(messages);
+    }
+
+    // Get message by id
+    private void getMessageById(Context ctx) {
+        try {
+            int id = Integer.parseInt(ctx.pathParam("message_id"));
+            Optional<Message> message = messageService.getMessageById(id);
+            if (message.isPresent()) {
+                ctx.status(200).json(message.get());
+            } else {
+                ctx.status(200).result("");
+            }
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid message ID");
+        } catch (ServiceException e) {
+            ctx.status(500).result("Error retrieving message");
+        }
+    }
+
+    // Delete message by id
+    private void deleteMessageById(Context ctx) {
+        try {
+            int id = Integer.parseInt(ctx.pathParam("message_id"));
+            Optional<Message> message = messageService.getMessageById(id);
+            if (message.isPresent()) {
+                messageService.deleteMessage(message.get());
+                ctx.status(200).json(message.get());
+            } else {
+                ctx.status(200).result("");
+            }
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid message ID");
+        } catch (ServiceException e) {
+            ctx.status(500).result("Error deleting message");
+        }
+    }
+
+    // Update message by id
+    private void updateMessageById(Context ctx) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
+
+        // Validation
+        if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
+            ctx.status(400).result("Message text cannot be null or empty");
+            return;
+        }
+
+        if (mappedMessage.getMessage_text().length() > 255) {
+            ctx.status(400).result("Message text cannot exceed 255 characters");
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(ctx.pathParam("message_id"));
+            mappedMessage.setMessage_id(id);
+            Message messageUpdated = messageService.updateMessage(mappedMessage);
+            ctx.status(200).json(messageUpdated);
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid message ID");
+        } catch (ServiceException e) {
+            ctx.status(400).result("Error updating message");
+        }
+    }
+
+    // Get messages by account id
+    private void getMessagesByAccountId(Context ctx) {
+        try {
+            int accountId = Integer.parseInt(ctx.pathParam("account_id"));
+            List<Message> messages = messageService.getMessagesByAccountId(accountId);
+            ctx.status(200).json(messages);
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid account ID");
+        } catch (ServiceException e) {
+            ctx.status(500).result("Error retrieving messages");
+        }
     }
 }

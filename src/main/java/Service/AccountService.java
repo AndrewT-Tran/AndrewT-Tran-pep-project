@@ -1,15 +1,16 @@
 package Service;
 
-import Model.Account;
 import DAO.AccountDAO;
 import DAO.DaoException;
-
+import Model.Account;
 import java.util.List;
 import java.util.Optional;
 
-public class AccountService {
-    private AccountDAO accountDao;
 
+public class AccountService {
+    private final AccountDAO accountDao;
+
+    // Initialize the AccountDAO
     public AccountService() {
         this.accountDao = new AccountDAO();
     }
@@ -18,31 +19,31 @@ public class AccountService {
         this.accountDao = accountDao;
     }
 
-    public AccountDAO getAccountDao() {
-        return accountDao;
-    }
-
-    public void setAccountDao(AccountDAO accountDao) {
-        this.accountDao = accountDao;
-    }
-
-    public List<Account> getAllAccounts() throws ServiceException {
+    public Optional<Account> getAccountById(int id) {
         try {
-            List<Account> accounts = accountDao.getAll();
-            return accounts;
+            return accountDao.getAccountById(id);
         } catch (DaoException e) {
-            throw new ServiceException("Exception occurred while fetching accounts", e);
+            throw new ServiceException("Something went wrong while fetching account", e);
+        }
+    }
+
+    public List<Account> getAllAccounts() {
+        try {
+            return accountDao.getAll();
+        } catch (DaoException e) {
+            throw new ServiceException("Sorry, there is an issue fetching the accounts", e);
         }
     }
 
     public Account createAccount(Account account) throws ServiceException {
-        if (isUsernameTaken(account.getUsername())) {
-            throw new ServiceException("Username already taken");
+        try {
+            if (isUsernameTaken(account.getUsername())) {
+                throw new ServiceException("Username already taken");
+            }
+            return accountDao.createAccount(account);
+        } catch (DaoException e) {
+            throw new ServiceException("Error creating account", e);
         }
-
-        account.setAccount_id(generateNewAccountId());
-        saveAccountToDatabase(account);
-        return account;
     }
 
     public Optional<Account> validateLogin(Account account) throws ServiceException {
@@ -55,26 +56,27 @@ public class AccountService {
         }
     }
 
-    public boolean accountExists(int accountId) {
-        return getAccountById(accountId).isPresent();
+    public boolean updateAccount(Account account) throws ServiceException {
+        try {
+            return accountDao.update(account);
+        } catch (DaoException e) {
+            throw new ServiceException("There was an issue updating the account", e);
+        }
     }
 
-    private boolean isUsernameTaken(String username) {
-        return false;
+    public boolean isUsernameTaken(String username) throws ServiceException {
+        try {
+            return accountDao.doesUsernameExist(username);
+        } catch (DaoException e) {
+            throw new ServiceException("Error checking if username exists", e);
+        }
     }
 
-    private int generateNewAccountId() {
-        return 1;
-    }
-
-    private void saveAccountToDatabase(Account account) {
-    }
-
-    private Optional<Account> getAccountByUsername(String username) {
-        return Optional.empty();
-    }
-
-    private Optional<Account> getAccountById(int accountId) {
-        return Optional.empty();
+    private Optional<Account> getAccountByUsername(String username) throws ServiceException {
+        try {
+            return accountDao.getAccountByUsername(username);
+        } catch (DaoException e) {
+            throw new ServiceException("Exception occurred while finding account by username " + username, e);
+        }
     }
 }
