@@ -60,7 +60,7 @@ public class AccountService {
         try {
             return accountDao.getAccountByUsername(username);
         } catch (DaoException e) {
-            throw new ServiceException("Exception occurred while finding account by username " + username, e);
+            throw new ServiceException("Could not find your account based on your username " + username, e);
         }
     }
 }
