@@ -21,6 +21,14 @@ import io.javalin.http.Context;
 
 
 
+
+
+
+
+
+
+
+
 public class SocialMediaController {
 
     private final AccountService accountService;
@@ -139,9 +147,9 @@ public class SocialMediaController {
                 ctx.status(200).result("");
             }
         } catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid message ID");
+            ctx.status(200).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(400).result("Error retrieving message");
+            ctx.status(200).result("");
         }
     }
 
@@ -157,7 +165,7 @@ public class SocialMediaController {
                 ctx.status(200).result("");
             }
         } catch (NumberFormatException e) {
-            ctx.status(200).result("Invalid message ID");
+            ctx.status(400).result("Invalid message ID");
         } catch (ServiceException e) {
             ctx.status(200).result("Error deleting message");
         }
