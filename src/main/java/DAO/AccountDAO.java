@@ -5,14 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import Model.Account;
 import Util.ConnectionUtil;
-
-
 
 public class AccountDAO {
 
@@ -46,39 +42,6 @@ public class AccountDAO {
             handleSQLException(e, sql, "Error while fetching account by ID");
         }
         return Optional.empty();
-    }
-
-    public List<Account> getAll() throws DaoException {
-        List<Account> accounts = new ArrayList<>();
-        String sql = "SELECT * FROM Account";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                accounts.add(new Account(rs.getInt("account_id"), rs.getString("username"), rs.getString("password")));
-            }
-        } catch (SQLException e) {
-            handleSQLException(e, sql, "Error while fetching all accounts");
-        }
-        return accounts;
-    }
-
-    public boolean update(Account account) throws DaoException {
-        String sql = "UPDATE Account SET username = ?, password = ? WHERE account_id = ?";
-        try (Connection conn = ConnectionUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, account.getUsername());
-            ps.setString(2, account.getPassword());
-            ps.setInt(3, account.getAccount_id());
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows > 0) {
-                return true;
-            } else {
-                throw new DaoException("Updating account failed, no such account found.");
-            }
-        } catch (SQLException e) {
-            throw new DaoException("Updating account failed due to SQL error", e);
-        }
     }
 
     public boolean doesUsernameExist(String username) throws DaoException {
@@ -119,6 +82,7 @@ public class AccountDAO {
 
     private void handleSQLException(SQLException e, String sql, String message) throws DaoException {
         System.err.println(message + " - SQL: " + sql);
+        e.printStackTrace();
         throw new DaoException(message, e);
     }
 }

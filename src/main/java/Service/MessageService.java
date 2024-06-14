@@ -1,21 +1,20 @@
 package Service;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import DAO.DaoException;
-import DAO.MessageDAO;
 import Model.Account;
 import Model.Message;
+import DAO.DaoException;
+import DAO.MessageDAO;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageService {
     private final MessageDAO messageDao;
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageService.class);
     private static final String DB_ACCESS_ERROR_MSG = "Error accessing the database";
 
+    // Initialize the MessageDAO
     public MessageService() {
         this.messageDao = new MessageDAO();
     }
@@ -25,7 +24,7 @@ public class MessageService {
     }
 
     public Optional<Message> getMessageById(int id) {
-        LOGGER.info("Fetching message with ID: {}", id);
+        LOGGER.info("Fetching message with ID: {} ", id);
         try {
             Optional<Message> message = messageDao.getMessageById(id);
             if (!message.isPresent()) {
@@ -41,7 +40,7 @@ public class MessageService {
     public List<Message> getAllMessages() {
         LOGGER.info("Fetching all messages");
         try {
-            List<Message> messages = messageDao.getAll();
+            List<Message> messages = messageDao.getAllMessages();
             LOGGER.info("Fetched {} messages", messages.size());
             return messages;
         } catch (DaoException e) {
@@ -68,9 +67,8 @@ public class MessageService {
 
         // Check account permission
         checkAccountPermission(account, message.getPosted_by());
-
         try {
-            Message createdMessage = messageDao.insert(message);
+            Message createdMessage = messageDao.createMessage(message);
             LOGGER.info("Created message: {}", createdMessage);
             return createdMessage;
         } catch (DaoException e) {
@@ -82,16 +80,18 @@ public class MessageService {
         LOGGER.info("Updating message: {}", message.getMessage_id());
 
         Optional<Message> retrievedMessage = this.getMessageById(message.getMessage_id());
+
         if (!retrievedMessage.isPresent()) {
             throw new ServiceException("Message not found");
         }
 
         retrievedMessage.get().setMessage_text(message.getMessage_text());
+
         validateMessage(retrievedMessage.get());
 
         try {
             messageDao.update(retrievedMessage.get());
-            LOGGER.info("Updated message: {}", retrievedMessage.get());
+            LOGGER.info("Updated message: {}", message);
             return retrievedMessage.get();
         } catch (DaoException e) {
             throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
@@ -128,6 +128,4 @@ public class MessageService {
             throw new ServiceException("Account not authorized to modify this message");
         }
     }
-
-
 }
