@@ -29,6 +29,10 @@ import io.javalin.http.Context;
 
 
 
+
+
+
+
 public class SocialMediaController {
     private final AccountService accountService;
     private final MessageService messageService;
@@ -183,7 +187,7 @@ public class SocialMediaController {
         }
     
         if (mappedMessage.getMessage_text().length() > 254) {
-            ctx.status(200).result("Message text cannot exceed 254 characters");
+            ctx.status(400).result("Message text cannot exceed 254 characters");
             return;
         }
     
@@ -197,10 +201,8 @@ public class SocialMediaController {
             } else {
                 ctx.status(404).result("");
             }
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException | ServiceException e) {
             ctx.status(400).result("");
-        } catch (ServiceException e) {
-            ctx.status(200).result("");
         }
     }
     
@@ -214,7 +216,7 @@ public class SocialMediaController {
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid account ID");
         } catch (ServiceException e) {
-            ctx.status(200).result("Error retrieving messages");
+            ctx.status(400).result("Error retrieving messages");
         }
     }
 }
