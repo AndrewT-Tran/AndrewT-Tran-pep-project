@@ -14,10 +14,10 @@ import Util.ConnectionUtil;
 
 public class MessageDAO {
 
+    // CREATE
     public Message createMessage(Message message) throws DaoException {
         String sql = "INSERT INTO message (posted_by, message_text, time_posted_epoch) VALUES (?, ?, ?)";
-        try (Connection conn = ConnectionUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = ConnectionUtil.getConnection(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, message.getPosted_by());
             ps.setString(2, message.getMessage_text());
             ps.setLong(3, message.getTime_posted_epoch());
@@ -36,12 +36,11 @@ public class MessageDAO {
         throw new DaoException("Failed to insert message");
     }
 
+    // LIST
     public List<Message> getAllMessages() throws DaoException {
         List<Message> messages = new ArrayList<>();
         String sql = "SELECT * FROM Message";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 messages.add(new Message(rs.getInt("message_id"), rs.getInt("posted_by"), rs.getString("message_text"), rs.getLong("time_posted_epoch")));
             }
@@ -51,10 +50,10 @@ public class MessageDAO {
         return messages;
     }
 
+    // GET BY ID
     public Optional<Message> getMessageById(int messageId) throws DaoException {
         String sql = "SELECT * FROM Message WHERE message_id = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, messageId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -67,10 +66,10 @@ public class MessageDAO {
         return Optional.empty();
     }
 
+    // DELETE
     public boolean deleteMessage(int messageId) throws DaoException {
         String sql = "DELETE FROM Message WHERE message_id = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, messageId);
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
@@ -84,10 +83,10 @@ public class MessageDAO {
         return deleteMessage(message.getMessage_id());
     }
 
+    // UDPATE
     public boolean update(Message message) throws DaoException {
         String sql = "UPDATE Message SET message_text = ? WHERE message_id = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, message.getMessage_text());
             stmt.setInt(2, message.getMessage_id());
             int rowsAffected = stmt.executeUpdate();
@@ -98,11 +97,11 @@ public class MessageDAO {
         return false;
     }
 
+    // GET BY ACCOUNT
     public List<Message> getMessagesByAccountId(int accountId) throws DaoException {
         List<Message> messages = new ArrayList<>();
         String sql = "SELECT * FROM Message WHERE posted_by = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, accountId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

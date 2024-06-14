@@ -15,20 +15,6 @@ import Service.ServiceException;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public class SocialMediaController {
 
     private final AccountService accountService;
@@ -162,12 +148,12 @@ public class SocialMediaController {
                 messageService.deleteMessage(message.get());
                 ctx.status(200).json(message.get());
             } else {
-                ctx.status(200).result("");
+                ctx.status(200).result(""); // needs to emnty per instructions
             }
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(200).result("Error deleting message");
+            ctx.status(200).result(""); // needs to emnty per instructions
         }
     }
 

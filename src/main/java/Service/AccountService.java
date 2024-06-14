@@ -1,12 +1,13 @@
 package Service;
 
-import Model.Account;
-import DAO.AccountDAO;
-import DAO.DaoException;
-
 import java.util.Optional;
 
+import DAO.AccountDAO;
+import DAO.DaoException;
+import Model.Account;
+
 public class AccountService {
+
     private final AccountDAO accountDao;
 
     // Initialize the AccountDAO

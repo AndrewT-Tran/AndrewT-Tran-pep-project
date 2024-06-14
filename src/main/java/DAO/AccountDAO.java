@@ -14,8 +14,7 @@ public class AccountDAO {
 
     public Optional<Account> getAccountByUsername(String username) throws DaoException {
         String sql = "SELECT * FROM Account WHERE username = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, username);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -30,8 +29,7 @@ public class AccountDAO {
 
     public Optional<Account> getAccountById(int accountId) throws DaoException {
         String sql = "SELECT * FROM Account WHERE account_id = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, accountId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -46,8 +44,7 @@ public class AccountDAO {
 
     public boolean doesUsernameExist(String username) throws DaoException {
         String sql = "SELECT COUNT(*) FROM Account WHERE username = ?";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, username);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -62,8 +59,7 @@ public class AccountDAO {
 
     public Account createAccount(Account account) throws DaoException {
         String sql = "INSERT INTO Account (username, password) VALUES (?, ?)";
-        try (Connection connection = ConnectionUtil.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = ConnectionUtil.getConnection(); PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, account.getUsername());
             stmt.setString(2, account.getPassword());
             stmt.executeUpdate();
