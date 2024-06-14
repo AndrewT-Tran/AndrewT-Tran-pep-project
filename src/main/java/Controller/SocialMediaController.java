@@ -21,19 +21,8 @@ import io.javalin.http.Context;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 public class SocialMediaController {
+
     private final AccountService accountService;
     private final MessageService messageService;
 
@@ -152,7 +141,7 @@ public class SocialMediaController {
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(200).result("Error retrieving message");
+            ctx.status(400).result("Error retrieving message");
         }
     }
 
@@ -168,29 +157,28 @@ public class SocialMediaController {
                 ctx.status(200).result("");
             }
         } catch (NumberFormatException e) {
-            ctx.status(400).result("");
+            ctx.status(200).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(200).result("");
+            ctx.status(200).result("Error deleting message");
         }
     }
-    
 
     // Update message by id
     private void updateMessageById(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
-    
+
         // Validation
         if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
-            ctx.status(400).result("Message text cannot be null or empty");
+            ctx.status(400).result("");
             return;
         }
-    
+
         if (mappedMessage.getMessage_text().length() > 254) {
-            ctx.status(400).result("Message text cannot exceed 254 characters");
+            ctx.status(400).result("");
             return;
         }
-    
+
         try {
             int id = Integer.parseInt(ctx.pathParam("message_id"));
             mappedMessage.setMessage_id(id);
@@ -199,13 +187,14 @@ public class SocialMediaController {
                 Message messageUpdated = messageService.updateMessage(mappedMessage);
                 ctx.status(200).json(messageUpdated);
             } else {
-                ctx.status(404).result("");
+                ctx.status(400).result("");
             }
-        } catch (NumberFormatException | ServiceException e) {
+        } catch (NumberFormatException e) {
+            ctx.status(400).result("Invalid message ID");
+        } catch (ServiceException e) {
             ctx.status(400).result("");
         }
     }
-    
 
     // Get messages by account id
     private void getMessagesByAccountId(Context ctx) {
@@ -214,9 +203,9 @@ public class SocialMediaController {
             List<Message> messages = messageService.getMessagesByAccountId(accountId);
             ctx.status(200).json(messages);
         } catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid account ID");
+            ctx.status(200).result("Invalid account ID");
         } catch (ServiceException e) {
-            ctx.status(400).result("Error retrieving messages");
+            ctx.status(200).result("Error retrieving messages");
         }
     }
 }
