@@ -1,13 +1,19 @@
 package Service;
 
-import Model.Account;
-import Model.Message;
-import DAO.DaoException;
-import DAO.MessageDAO;
 import java.util.List;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import DAO.DaoException;
+import DAO.MessageDAO;
+import Model.Account;
+import Model.Message;
+
+
+
+
 
 public class MessageService {
     private final MessageDAO messageDao;
@@ -78,17 +84,17 @@ public class MessageService {
 
     public Message updateMessage(Message message) {
         LOGGER.info("Updating message: {}", message.getMessage_id());
-
+    
         Optional<Message> retrievedMessage = this.getMessageById(message.getMessage_id());
-
+    
         if (!retrievedMessage.isPresent()) {
             throw new ServiceException("Message not found");
         }
-
+    
         retrievedMessage.get().setMessage_text(message.getMessage_text());
-
+    
         validateMessage(retrievedMessage.get());
-
+    
         try {
             messageDao.update(retrievedMessage.get());
             LOGGER.info("Updated message: {}", message);
@@ -97,7 +103,7 @@ public class MessageService {
             throw new ServiceException(DB_ACCESS_ERROR_MSG, e);
         }
     }
-
+    
     public void deleteMessage(Message message) {
         LOGGER.info("Deleting message: {}", message);
         try {

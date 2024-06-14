@@ -15,6 +15,20 @@ import Service.ServiceException;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class SocialMediaController {
     private final AccountService accountService;
     private final MessageService messageService;
@@ -46,17 +60,17 @@ public class SocialMediaController {
 
         // Validation
         if (account.getUsername() == null || account.getUsername().isEmpty()) {
-            ctx.status(400).result("Username must not be empty");
+            ctx.status(400).result("");
             return;
         }
 
         if (account.getPassword() == null || account.getPassword().length() < 4) {
-            ctx.status(400).result("Password must be at least 4 characters long");
+            ctx.status(400).result("");
             return;
         }
 
         if (accountService.isUsernameTaken(account.getUsername())) {
-            ctx.status(400).result("Username already exists");
+            ctx.status(400).result("");
             return;
         }
 
@@ -79,10 +93,10 @@ public class SocialMediaController {
                 ctx.sessionAttribute("logged_in_account", loggedInAccount.get());
                 ctx.status(200).json(loggedInAccount.get());
             } else {
-                ctx.status(401).result("Invalid username or password");
+                ctx.status(401).result("");
             }
         } catch (ServiceException e) {
-            ctx.status(401).result("Error logging in");
+            ctx.status(401).result("");
         }
     }
 
@@ -93,12 +107,12 @@ public class SocialMediaController {
 
         // Validation
         if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
-            ctx.status(400).result("Message text cannot be null or empty");
+            ctx.status(400).result("");
             return;
         }
 
         if (mappedMessage.getMessage_text().length() > 254) {
-            ctx.status(400).result("Message text cannot exceed 254 characters");
+            ctx.status(400).result("");
             return;
         }
 
@@ -108,7 +122,7 @@ public class SocialMediaController {
                 Message message = messageService.createMessage(mappedMessage, account.get());
                 ctx.status(200).json(message);
             } else {
-                ctx.status(400).result("Account not found");
+                ctx.status(400).result("");
             }
         } catch (ServiceException e) {
             ctx.status(400).result("Error creating message");
@@ -134,7 +148,7 @@ public class SocialMediaController {
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid message ID");
         } catch (ServiceException e) {
-            ctx.status(500).result("Error retrieving message");
+            ctx.status(200).result("Error retrieving message");
         }
     }
 
@@ -150,39 +164,46 @@ public class SocialMediaController {
                 ctx.status(200).result("");
             }
         } catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid message ID");
+            ctx.status(400).result("");
         } catch (ServiceException e) {
-            ctx.status(500).result("Error deleting message");
+            ctx.status(200).result("");
         }
     }
+    
 
     // Update message by id
     private void updateMessageById(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Message mappedMessage = mapper.readValue(ctx.body(), Message.class);
-
+    
         // Validation
         if (mappedMessage.getMessage_text() == null || mappedMessage.getMessage_text().trim().isEmpty()) {
             ctx.status(400).result("Message text cannot be null or empty");
             return;
         }
-
+    
         if (mappedMessage.getMessage_text().length() > 254) {
-            ctx.status(400).result("Message text cannot exceed 254 characters");
+            ctx.status(200).result("Message text cannot exceed 254 characters");
             return;
         }
-
+    
         try {
             int id = Integer.parseInt(ctx.pathParam("message_id"));
             mappedMessage.setMessage_id(id);
-            Message messageUpdated = messageService.updateMessage(mappedMessage);
-            ctx.status(200).json(messageUpdated);
+            Optional<Message> existingMessage = messageService.getMessageById(id);
+            if (existingMessage.isPresent()) {
+                Message messageUpdated = messageService.updateMessage(mappedMessage);
+                ctx.status(200).json(messageUpdated);
+            } else {
+                ctx.status(404).result("");
+            }
         } catch (NumberFormatException e) {
-            ctx.status(400).result("Invalid message ID");
+            ctx.status(400).result("");
         } catch (ServiceException e) {
-            ctx.status(400).result("Error updating message");
+            ctx.status(200).result("");
         }
     }
+    
 
     // Get messages by account id
     private void getMessagesByAccountId(Context ctx) {
@@ -193,7 +214,7 @@ public class SocialMediaController {
         } catch (NumberFormatException e) {
             ctx.status(400).result("Invalid account ID");
         } catch (ServiceException e) {
-            ctx.status(500).result("Error retrieving messages");
+            ctx.status(200).result("Error retrieving messages");
         }
     }
 }
